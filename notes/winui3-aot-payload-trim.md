@@ -30,11 +30,18 @@ activation does NOT need them despite what the web says), all `*.json` (workload
 all language folders except `en-us` (and probably that too), `Microsoft.WindowsAppRuntime.Bootstrap.dll`
 (framework-dependent only), `RestartAgent.exe`, `WebView2Loader.dll`, `Microsoft.Web.WebView2.Core.dll`,
 `WinUIEdit.dll` (RichEditBox only), `DWriteCore.dll`, `DwmSceneI.dll`, `*.ProxyStub.dll`,
-`SessionHandleIPCProxyStub.dll`, `Microsoft.Windows.ApplicationModel.Background.UniversalBGTask.dll`,
-`Microsoft.ui.xaml.resources.common.dll`, `Microsoft.UI.Designer.dll`, `Microsoft.Windows.Workloads*`,
+`SessionHandleIPCProxyStub.dll`, `Microsoft.UI.Designer.dll`, `Microsoft.Windows.Workloads*`,
 `Microsoft.UI.Xaml/Assets/*` (map.html, noise png).
 
 **NOT safe (each one alone kills startup):**
+
+- `Microsoft.ui.xaml.resources.common.dll` — **the hello-world bisection got this one wrong.**
+  It ran fine without it; the real app (ListView, ToggleSwitch, InfoBar, FontIcon) dies at
+  startup with `0xC000027B`, because this DLL carries the resource dictionaries for the standard
+  controls. Removed from the deny-list on 2026-09-07. This is precisely the "re-run the
+  bisection against the real app" warning below coming true, and it cost a wrong-diagnosis
+  detour through [winui3-publish-does-not-copy-content-assets.md](winui3-publish-does-not-copy-content-assets.md).
+  Payload cost: +1 file, +0.1 MB.
 
 - `Microsoft.UI.Xaml.Internal.dll` — static import of `Microsoft.ui.xaml.dll` (`dumpbin /dependents`).
 - `Microsoft.ui.xaml.resources.19h1.dll` — loaded by name at startup; without it
@@ -70,7 +77,7 @@ optional later experiment.
     <_TrimFiles Include="$(PublishDir)Microsoft.Windows.AI.*.dll;$(PublishDir)Microsoft.Windows.Search.dll;$(PublishDir)Microsoft.Windows.Widgets.dll;$(PublishDir)Microsoft.Windows.Workloads*.dll;$(PublishDir)Microsoft.Windows.Workloads.pri" />
     <_TrimFiles Include="$(PublishDir)Microsoft.Web.WebView2.Core.dll;$(PublishDir)WebView2Loader.dll;$(PublishDir)WinUIEdit.dll;$(PublishDir)DWriteCore.dll;$(PublishDir)DwmSceneI.dll" />
     <_TrimFiles Include="$(PublishDir)Microsoft.WindowsAppRuntime.Bootstrap.dll;$(PublishDir)RestartAgent.exe;$(PublishDir)*.ProxyStub.dll;$(PublishDir)SessionHandleIPCProxyStub.dll;$(PublishDir)Microsoft.Windows.ApplicationModel.Background.UniversalBGTask.dll" />
-    <_TrimFiles Include="$(PublishDir)Microsoft.ui.xaml.resources.common.dll;$(PublishDir)Microsoft.UI.Designer.dll" />
+    <_TrimFiles Include="$(PublishDir)Microsoft.UI.Designer.dll" />
     <_TrimDirs Include="$([System.IO.Directory]::GetDirectories('$(PublishDir)'))" Exclude="$(PublishDir)en-us;$(PublishDir)Assets" />
   </ItemGroup>
   <Delete Files="@(_TrimFiles)" />

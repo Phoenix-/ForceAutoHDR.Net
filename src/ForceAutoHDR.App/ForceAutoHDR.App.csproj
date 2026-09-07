@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.22621.0</TargetPlatformMinVersion>
+    <RootNamespace>ForceAutoHDR.App</RootNamespace>
+    <AssemblyName>ForceAutoHDR</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseWinUI>true</UseWinUI>
+    <WinUISDKReferences>false</WinUISDKReferences>
+    <!-- Required by [LibraryImport]'s generated marshalling code (SYSLIB1062), not by any
+         unsafe block of ours. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- Unpackaged, Windows App SDK shipped next to the exe.
+         EnableMsixTooling must stay true even here: it drives PRI generation and publish, and
+         turning it off makes the published exe die at startup with 0xC000027B.
+         See notes/winui3-aot-publish-drops-pri-without-msixtooling.md. -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <EnableMsixTooling>true</EnableMsixTooling>
+
+    <!-- Native AOT -->
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <CsWinRTAotWarningLevel>2</CsWinRTAotWarningLevel>
+    <DebugType>none</DebugType>
+    <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ForceAutoHDR.Core\ForceAutoHDR.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Component packages instead of the Microsoft.WindowsAppSDK meta-package:
+       drops AI/ML (onnxruntime, DirectML), Search, Widgets, DWrite from the self-contained
+       payload. See notes/winui3-aot-payload-trim.md for the measurements. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="2.4.0" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="2.3.6" />
+  </ItemGroup>
+
+  <!-- Post-publish trim of the Windows App SDK payload: files proven unnecessary by bisection
+       in the spike. Deny-list, so anything new stays in by default. The bisection was run
+       against a hello-world; re-verify before the first release. -->
+  <Target Name="TrimWindowsAppSdkPayload" AfterTargets="Publish" Condition="'$(SkipPayloadTrim)' != 'true'">
+    <ItemGroup>
+      <_TrimFiles Include="$(PublishDir)*.winmd;$(PublishDir)*.json;$(PublishDir)*.pdb" />
+      <_TrimFiles Include="$(PublishDir)onnxruntime.dll;$(PublishDir)DirectML.dll;$(PublishDir)NPUDetect.dll;$(PublishDir)PerceptiveStreaming.dll" />
+      <_TrimFiles Include="$(PublishDir)Microsoft.Windows.AI.*.dll;$(PublishDir)Microsoft.Windows.Search.dll;$(PublishDir)Microsoft.Windows.Widgets.dll;$(PublishDir)Microsoft.Windows.Workloads*.dll;$(PublishDir)Microsoft.Windows.Workloads.pri" />
+      <_TrimFiles Include="$(PublishDir)Microsoft.Web.WebView2.Core.dll;$(PublishDir)WebView2Loader.dll;$(PublishDir)WinUIEdit.dll;$(PublishDir)DWriteCore.dll;$(PublishDir)DwmSceneI.dll" />
+      <_TrimFiles Include="$(PublishDir)Microsoft.WindowsAppRuntime.Bootstrap.dll;$(PublishDir)RestartAgent.exe;$(PublishDir)*.ProxyStub.dll;$(PublishDir)SessionHandleIPCProxyStub.dll;$(PublishDir)Microsoft.Windows.ApplicationModel.Background.UniversalBGTask.dll" />
+      <!-- Microsoft.ui.xaml.resources.common.dll must NOT be trimmed: it carries the resource
+           dictionaries for the standard controls. A hello-world runs without it, this app does
+           not (0xC000027B at startup). See notes/winui3-aot-payload-trim.md. -->
+      <_TrimFiles Include="$(PublishDir)Microsoft.UI.Designer.dll" />
+      <_TrimDirs Include="$([System.IO.Directory]::GetDirectories('$(PublishDir)'))" Exclude="$(PublishDir)en-us;$(PublishDir)Assets" />
+    </ItemGroup>
+    <Delete Files="@(_TrimFiles)" />
+    <RemoveDir Directories="@(_TrimDirs)" />
+    <Message Importance="high" Text="TrimWindowsAppSdkPayload: removed @(_TrimFiles->Count()) files, @(_TrimDirs->Count()) dirs" />
+  </Target>
+
+</Project>

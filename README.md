@@ -3,8 +3,10 @@
 Windows Auto HDR, per game, without the Settings app — a C# rewrite of
 [7gxycn08/ForceAutoHDR](https://github.com/7gxycn08/ForceAutoHDR) on .NET 10 and Native AOT.
 
-> **Status: early.** The core library is done and covered by tests. The WinUI 3 app that will
-> sit on top of it does not exist yet. Nothing is released, and there is nothing to download.
+> **Status: early but real.** The core library is done and covered by tests, and the WinUI 3 app
+> on top of it runs as a published Native AOT build: it lists every configured game, toggles both
+> mechanisms, and adds games through a file picker. Nothing is released yet — there is no
+> download, and no installer.
 
 ## Why
 
@@ -41,6 +43,21 @@ Consequences the library takes seriously:
   qualified path rather than by a deny-list that goes stale.
 - **No elevation, ever.** Everything is `HKCU`. The original tool's admin check was unnecessary.
 
+## The app
+
+One window, one row per configured game, two switches:
+
+- **Auto HDR** — the per-game switch from Settings. Off writes an explicit "disabled"; the remove
+  button leaves the game unconfigured instead, which is a different thing.
+- **Force** — the `D3DBehaviors` override. Because it matches on the file name, flipping it on one
+  row updates every other row with the same executable, right there in the list.
+
+Games known only through an override — no path anywhere in the preferences — still get a row, with
+the Auto HDR switch disabled and a label saying the entry is matched by file name alone.
+
+Writes happen immediately; there is no Apply button, because neither mechanism is transactional and
+both take effect the next time the game starts.
+
 ## Using the library
 
 ```csharp
@@ -65,10 +82,18 @@ and a dry run.
 
 ```
 dotnet test
+dotnet publish src/ForceAutoHDR.App -c Release
 ```
 
-.NET 10 SDK, Windows. The library targets `net10.0-windows` and is AOT-compatible; it pulls no
-packages at all.
+.NET 10 SDK on Windows, plus the MSVC toolchain for the Native AOT link step. The core library
+targets `net10.0-windows`, is AOT-compatible, and pulls no packages at all; the app is unpackaged,
+self-contained WinUI 3 on Windows App SDK 2.4.
+
+The published payload is 30 files / 49.7 MB, trimmed from the stock 289 files / 131 MB by the
+`TrimWindowsAppSdkPayload` target — pass `-p:SkipPayloadTrim=true` to publish it untouched, which
+is the first thing to try if a published build misbehaves. What that target may and may not delete
+is written up in [notes/winui3-aot-payload-trim.md](notes/winui3-aot-payload-trim.md), together
+with the rest of what this stack cost to learn.
 
 ## Credits
 
