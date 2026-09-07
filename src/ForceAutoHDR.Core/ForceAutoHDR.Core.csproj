@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- UI-agnostic: no WinUI, no Windows App SDK. Only the Win32 registry, so a plain
+         windows TFM is enough and the library stays usable from tests and console hosts. -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>ForceAutoHDR.Core</RootNamespace>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+</Project>

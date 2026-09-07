@@ -1,0 +1,12 @@
+# Notes
+
+Gotchas and non-obvious behaviors discovered while working on ForceAutoHDR.Net.
+One file per trap. Keep entries short: the trap, the fix, and a pointer into
+the code so future-you can find the guard.
+
+## Index
+
+- [winui3-aot-publish-drops-pri-without-msixtooling.md](winui3-aot-publish-drops-pri-without-msixtooling.md) — `EnableMsixTooling=false` in an unpackaged WinUI 3 project silently drops `<App>.pri` from the publish output; the AOT exe then dies at startup with `0xC000027B` / E_FAIL in `Microsoft.UI.Xaml.dll`. Keep it `true` even for `WindowsPackageType=None`.
+- [winui3-aot-payload-trim.md](winui3-aot-payload-trim.md) — the self-contained Windows App SDK 2.4 payload is 131 MB but a hello-world needs 28 files / 47 MB; what is safe to delete, what is not (`Microsoft.ui.xaml.resources.19h1.dll`, `Microsoft.UI.Xaml.Internal.dll`), and the two hooks used (component packages + `TrimWindowsAppSdkPayload` target).
+- [usergpupreferences-holds-non-app-values.md](usergpupreferences-holds-non-app-values.md) — `UserGpuPreferences` also holds `DirectXUserGlobalSettings` and `GraphicsFeaturesNotificationConfig`, so app entries are recognised by `Path.IsPathFullyQualified`; the two mechanisms are keyed differently (full path vs bare exe name), which is why one override can force several rows; flag strings must round-trip unknown flags.
+- [winui3-aot-traps-from-meridian.md](winui3-aot-traps-from-meridian.md) — NativeAOT traps already paid for in the Meridian project: `ItemsSource`+`ObservableCollection` crash, `{Binding}` in DataTemplates, `VisualTreeHelper` before layout, `Flyout.ShowAt` XamlRoot, DPI awareness with a custom `Main`.

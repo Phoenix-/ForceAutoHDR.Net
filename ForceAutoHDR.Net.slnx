@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ForceAutoHDR.Core/ForceAutoHDR.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ForceAutoHDR.Core.Tests/ForceAutoHDR.Core.Tests.csproj" />
+  </Folder>
+</Solution>
