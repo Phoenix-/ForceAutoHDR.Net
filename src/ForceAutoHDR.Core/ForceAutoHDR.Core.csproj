@@ -6,6 +6,15 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>ForceAutoHDR.Core</RootNamespace>
     <IsAotCompatible>true</IsAotCompatible>
+    <!-- The GPU counter probe reads PDH's result array as a span over native memory, and
+         [LibraryImport] generates unsafe marshalling stubs. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Path-to-name and counter-instance parsing are implementation details, but they are the
+         parts worth testing in isolation. -->
+    <InternalsVisibleTo Include="ForceAutoHDR.Core.Tests" />
+  </ItemGroup>
 
 </Project>

@@ -37,6 +37,13 @@ public sealed class CurrentUserRegistryStore : IRegistryStore
         return key?.GetValue(valueName) as string;
     }
 
+    public long? GetInt64(string keyPath, string valueName)
+    {
+        using var key = Win32.Registry.CurrentUser.OpenSubKey(keyPath);
+        // A REG_QWORD surfaces as long; RegistryView aside, anything else is reported as absent.
+        return key?.GetValue(valueName) as long?;
+    }
+
     public void SetString(string keyPath, string valueName, string value)
     {
         using var key = Win32.Registry.CurrentUser.CreateSubKey(keyPath, writable: true);

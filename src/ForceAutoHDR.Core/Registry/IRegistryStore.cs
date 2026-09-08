@@ -24,6 +24,13 @@ public interface IRegistryStore
     /// <summary>The string value, or <see langword="null"/> when the key, the value, or the REG_SZ type is missing.</summary>
     string? GetString(string keyPath, string valueName);
 
+    /// <summary>
+    /// The REG_QWORD value, or <see langword="null"/> when the key, the value, or that type is
+    /// missing. Read-only: the one QWORD this app reads is <c>GameConfigStore</c>'s
+    /// <c>LastAccessed</c>, which belongs to Game Bar and is never written back.
+    /// </summary>
+    long? GetInt64(string keyPath, string valueName);
+
     /// <summary>Writes a REG_SZ value, creating the key (and its parents) if needed.</summary>
     void SetString(string keyPath, string valueName, string value);
 

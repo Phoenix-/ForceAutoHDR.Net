@@ -8,8 +8,10 @@ namespace ForceAutoHDR.Core.Registry;
 public sealed class InMemoryRegistryStore : IRegistryStore
 {
     // keyPath (normalized) -> valueName -> value. A key with no values still gets an entry,
-    // because an empty key is a real thing in the registry.
-    private readonly Dictionary<string, Dictionary<string, string>> _keys =
+    // because an empty key is a real thing in the registry. Values are boxed because the store
+    // models two types now (REG_SZ and REG_QWORD), and a value of the wrong type must read back
+    // as absent rather than be coerced -- exactly what the real registry does.
+    private readonly Dictionary<string, Dictionary<string, object>> _keys =
         new(StringComparer.OrdinalIgnoreCase);
 
     public bool KeyExists(string keyPath) => _keys.ContainsKey(Normalize(keyPath));
@@ -48,10 +50,9 @@ public sealed class InMemoryRegistryStore : IRegistryStore
     public IReadOnlyList<string> GetValueNames(string keyPath) =>
         _keys.TryGetValue(Normalize(keyPath), out var values) ? [.. values.Keys] : [];
 
-    public string? GetString(string keyPath, string valueName) =>
-        _keys.TryGetValue(Normalize(keyPath), out var values) && values.TryGetValue(valueName, out var value)
-            ? value
-            : null;
+    public string? GetString(string keyPath, string valueName) => Find(keyPath, valueName) as string;
+
+    public long? GetInt64(string keyPath, string valueName) => Find(keyPath, valueName) as long?;
 
     public void SetString(string keyPath, string valueName, string value)
     {
@@ -59,6 +60,13 @@ public sealed class InMemoryRegistryStore : IRegistryStore
         // Mirrors the registry: rewriting an existing value keeps the name's original casing.
         values[valueName] = value;
     }
+
+    /// <summary>
+    /// Seeds a REG_QWORD. Not on <see cref="IRegistryStore"/>: nothing in this app writes one,
+    /// but tests need to stage <c>GameConfigStore</c>'s <c>LastAccessed</c>.
+    /// </summary>
+    public void SetInt64(string keyPath, string valueName, long value) =>
+        GetOrCreate(Normalize(keyPath))[valueName] = value;
 
     public void DeleteValue(string keyPath, string valueName)
     {
@@ -84,7 +92,12 @@ public sealed class InMemoryRegistryStore : IRegistryStore
         }
     }
 
-    private Dictionary<string, string> GetOrCreate(string normalizedPath)
+    private object? Find(string keyPath, string valueName) =>
+        _keys.TryGetValue(Normalize(keyPath), out var values) && values.TryGetValue(valueName, out var value)
+            ? value
+            : null;
+
+    private Dictionary<string, object> GetOrCreate(string normalizedPath)
     {
         if (_keys.TryGetValue(normalizedPath, out var existing))
         {
@@ -94,13 +107,13 @@ public sealed class InMemoryRegistryStore : IRegistryStore
         // The registry creates the whole chain of parents; so does this.
         var segments = normalizedPath.Split('\\', StringSplitOptions.RemoveEmptyEntries);
         var path = string.Empty;
-        Dictionary<string, string>? current = null;
+        Dictionary<string, object>? current = null;
         foreach (var segment in segments)
         {
             path = path.Length == 0 ? segment : path + '\\' + segment;
             if (!_keys.TryGetValue(path, out current))
             {
-                current = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                current = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                 _keys[path] = current;
             }
         }
@@ -108,11 +121,11 @@ public sealed class InMemoryRegistryStore : IRegistryStore
         return current ?? GetRoot();
     }
 
-    private Dictionary<string, string> GetRoot()
+    private Dictionary<string, object> GetRoot()
     {
         if (!_keys.TryGetValue(string.Empty, out var root))
         {
-            root = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            root = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             _keys[string.Empty] = root;
         }
 
