@@ -59,7 +59,59 @@ jobs:
           $hash = (Get-FileHash "dist\$name.zip" -Algorithm SHA256).Hash.ToLower()
           "$hash *$name.zip" | Set-Content "dist\$name.zip.sha256" -NoNewline
           "name=$name" >> $env:GITHUB_OUTPUT
+          "sha256=$hash" >> $env:GITHUB_OUTPUT
           Write-Host "$name.zip -- $([math]::Round((Get-Item "dist\$name.zip").Length / 1MB, 1)) MB, sha256 $hash"
+
+      # Stable tags only. MSI ProductVersion has no notion of a prerelease suffix, so two
+      # prereleases of the same version would collide; prereleases ship the zip and nothing else.
+      - name: Build the MSI
+        id: msi
+        if: steps.version.outputs.prerelease == 'false'
+        shell: pwsh
+        run: |
+          # -t:Rebuild is not optional: MSBuild does not consider a changed ProductVersion a
+          # reason to rebuild, so an incremental build quietly reuses an MSI stamped with the
+          # previous version. See notes/msi-rebuild-needed-when-only-the-version-changes.md.
+          dotnet build packaging/msi/ForceAutoHDR.wixproj -c Release -t:Rebuild `
+            -p:ProductVersion=${{ steps.version.outputs.version }} `
+            -p:PayloadDir="${{ github.workspace }}\publish"
+
+          $name = "${{ steps.package.outputs.name }}"
+          Copy-Item packaging\msi\bin\Release\ForceAutoHDR.msi "dist\$name.msi"
+          $hash = (Get-FileHash "dist\$name.msi" -Algorithm SHA256).Hash.ToLower()
+          "$hash *$name.msi" | Set-Content "dist\$name.msi.sha256" -NoNewline
+
+          $codes = packaging\msi\Get-MsiProperty.ps1 -Path "dist\$name.msi"
+          if ($codes.ProductVersion -ne '${{ steps.version.outputs.version }}') {
+            throw "MSI says ProductVersion $($codes.ProductVersion), expected ${{ steps.version.outputs.version }}"
+          }
+
+          "sha256=$hash" >> $env:GITHUB_OUTPUT
+          "productCode=$($codes.ProductCode)" >> $env:GITHUB_OUTPUT
+          "upgradeCode=$($codes.UpgradeCode)" >> $env:GITHUB_OUTPUT
+          Write-Host "$name.msi -- $([math]::Round((Get-Item "dist\$name.msi").Length / 1MB, 1)) MB, product $($codes.ProductCode)"
+
+      # The manifests are for the maintainer rather than for anyone downloading the app, so they
+      # go to a build artifact instead of onto the release page. See packaging/winget/README.md.
+      - name: Render the winget manifests
+        if: steps.version.outputs.prerelease == 'false'
+        shell: pwsh
+        run: |
+          $url = "${{ github.server_url }}/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ steps.package.outputs.name }}.msi"
+          packaging\winget\render.ps1 `
+            -Version '${{ steps.version.outputs.version }}' `
+            -InstallerUrl $url `
+            -InstallerSha256 '${{ steps.msi.outputs.sha256 }}' `
+            -ProductCode '${{ steps.msi.outputs.productCode }}' `
+            -UpgradeCode '${{ steps.msi.outputs.upgradeCode }}' `
+            -OutputDirectory "${{ github.workspace }}\dist\winget"
+
+      - name: Upload the winget manifests
+        if: steps.version.outputs.prerelease == 'false'
+        uses: actions/upload-artifact@v7
+        with:
+          name: winget-manifests-${{ steps.version.outputs.version }}
+          path: dist/winget/
 
       # Draft on purpose: the notes want a human pass, and an unpublished draft can still be
       # deleted and rebuilt from a moved tag without anyone having downloaded it.
@@ -75,6 +127,12 @@ jobs:
             '--title', 'ForceAutoHDR.Net ${{ steps.version.outputs.version }}'
           )
           if ('${{ steps.version.outputs.prerelease }}' -eq 'true') { $ghArgs += '--prerelease' }
-          $ghArgs += "dist\${{ steps.package.outputs.name }}.zip"
-          $ghArgs += "dist\${{ steps.package.outputs.name }}.zip.sha256"
+          $name = '${{ steps.package.outputs.name }}'
+          $ghArgs += "dist\$name.zip"
+          $ghArgs += "dist\$name.zip.sha256"
+          # The MSI is built for stable tags only, so on a prerelease it is legitimately absent.
+          if (Test-Path "dist\$name.msi") {
+            $ghArgs += "dist\$name.msi"
+            $ghArgs += "dist\$name.msi.sha256"
+          }
           gh release create @ghArgs
