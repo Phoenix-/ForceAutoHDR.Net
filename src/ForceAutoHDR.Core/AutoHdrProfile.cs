@@ -1,3 +1,5 @@
+using ForceAutoHDR.Core.Discovery;
+
 namespace ForceAutoHDR.Core;
 
 /// <summary>
@@ -25,7 +27,18 @@ public sealed record AutoHdrProfile
     /// <summary>Subkey backing <see cref="IsForced"/>, or <see langword="null"/> when there is no override.</summary>
     public string? D3DSubKeyName { get; init; }
 
-    /// <summary>Executable name without its extension -- what to put in a list.</summary>
-    public string DisplayName =>
-        Path.GetFileNameWithoutExtension(ExecutableName) is { Length: > 0 } name ? name : ExecutableName;
+    /// <summary>
+    /// The game's name as a list should show it.
+    /// </summary>
+    /// <remarks>
+    /// Derived from the whole path when there is one, so a row reads "Wuthering Waves" rather than
+    /// "Client-Win64-Shipping" -- and, more to the point, so the same game is named identically
+    /// here and in the discovery list it was added from. A profile known only through a
+    /// <c>D3DBehaviors</c> override has just the file name to work with.
+    /// </remarks>
+    public string DisplayName => ExecutablePath is { } path
+        ? GameName.FromPath(path)
+        : Path.GetFileNameWithoutExtension(ExecutableName) is { Length: > 0 } name
+            ? name
+            : ExecutableName;
 }

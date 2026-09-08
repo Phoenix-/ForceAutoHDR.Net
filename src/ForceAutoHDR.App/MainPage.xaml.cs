@@ -1,8 +1,8 @@
 using ForceAutoHDR.App.ViewModels;
 using ForceAutoHDR.Core;
+using ForceAutoHDR.Core.Discovery;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.Windows.Storage.Pickers;
 
 namespace ForceAutoHDR.App;
 
@@ -11,7 +11,7 @@ public sealed partial class MainPage : Page
     public MainPage()
     {
         // Before InitializeComponent: the one-time x:Bind bindings are evaluated inside it.
-        ViewModel = new MainViewModel(AutoHdrService.ForCurrentUser());
+        ViewModel = new MainViewModel(AutoHdrService.ForCurrentUser(), GameDiscoveryService.ForCurrentUser());
 
         InitializeComponent();
 
@@ -22,26 +22,23 @@ public sealed partial class MainPage : Page
 
     private async void OnAddGameClick(object sender, RoutedEventArgs e)
     {
+        ErrorBar.IsOpen = false;
         try
         {
-            // Microsoft.Windows.Storage.Pickers, not the Windows.Storage one: this app is
-            // unpackaged, and the WinRT picker needs an HWND bolted on by hand there.
-            var picker = new FileOpenPicker(App.RootWindow!.AppWindow.Id)
+            var dialog = new AddGamesDialog(ViewModel.ConfiguredPaths)
             {
-                Title = "Pick a game executable",
-                SuggestedStartLocation = PickerLocationId.ComputerFolder,
-                CommitButtonText = "Add",
+                // An unparented ContentDialog throws; the page's own root is the one to use.
+                XamlRoot = XamlRoot,
             };
-            picker.FileTypeFilter.Add(".exe");
 
-            if (await picker.PickSingleFileAsync() is { } file)
+            if (await dialog.ShowAsync() == ContentDialogResult.Primary && dialog.SelectedPaths.Count > 0)
             {
-                ViewModel.AddGame(file.Path);
+                ViewModel.AddGames(dialog.SelectedPaths);
             }
         }
         catch (Exception ex)
         {
-            OnFailed($"Could not open the file picker: {ex.Message}");
+            OnFailed($"Could not open the game list: {ex.Message}");
         }
     }
 
@@ -49,6 +46,12 @@ public sealed partial class MainPage : Page
     {
         ErrorBar.IsOpen = false;
         ViewModel.Reload();
+    }
+
+    private void OnCleanUpStaleClick(object sender, RoutedEventArgs e)
+    {
+        ErrorBar.IsOpen = false;
+        ViewModel.CleanUpStale();
     }
 
     private void OnFailed(string message)

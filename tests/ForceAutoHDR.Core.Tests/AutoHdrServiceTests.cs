@@ -14,6 +14,30 @@ public class AutoHdrServiceTests
     public AutoHdrServiceTests() => _service = new AutoHdrService(_registry);
 
     [Fact]
+    public void A_row_is_named_after_the_game_not_the_shipping_binary()
+    {
+        // The same name the add dialog showed when this game was discovered. Naming it
+        // "Client-Win64-Shipping" here and "Wuthering Waves" there would read as two games.
+        SeedPreference(
+            @"C:\Games\Steam\steamapps\common\Wuthering Waves\Client\Binaries\Win64\Client-Win64-Shipping.exe",
+            "AutoHDREnable=2097;");
+
+        Assert.Equal("Wuthering Waves", Assert.Single(_service.GetProfiles()).DisplayName);
+    }
+
+    [Fact]
+    public void An_override_only_row_falls_back_to_the_file_name()
+    {
+        // A D3DBehaviors override stores a bare file name, so there is no path to derive from.
+        SeedOverride("Riftbreaker", "riftbreaker_win_release.exe", Forced);
+
+        var profile = Assert.Single(_service.GetProfiles());
+
+        Assert.Null(profile.ExecutablePath);
+        Assert.Equal("riftbreaker_win_release", profile.DisplayName);
+    }
+
+    [Fact]
     public void The_two_mechanisms_merge_into_one_row_per_app()
     {
         SeedPreference(X4, "AutoHDREnable=2097;");

@@ -5,8 +5,8 @@ Windows Auto HDR, per game, without the Settings app — a C# rewrite of
 
 > **Status: early but real.** The core library is done and covered by tests, and the WinUI 3 app
 > on top of it runs as a published Native AOT build: it lists every configured game, toggles both
-> mechanisms, and adds games through a file picker. Nothing is released yet — there is no
-> download, and no installer.
+> mechanisms, and finds the games you actually play instead of asking you where they live.
+> Nothing is released yet — there is no download, and no installer.
 
 ## Why
 
@@ -57,6 +57,36 @@ the Auto HDR switch disabled and a label saying the entry is matched by file nam
 
 Writes happen immediately; there is no Apply button, because neither mechanism is transactional and
 both take effect the next time the game starts.
+
+**Add game** does not ask you to go hunting for an executable. It lists what Windows has already
+seen rendering, newest first, with the date it last ran. There is also a **Detect running game**
+button that samples the GPU counters for whatever is drawing right now — the answer for a game
+Windows never recorded — and a **Browse…** escape hatch.
+
+When configured games are no longer installed, the main window offers to drop their entries. Only
+the per-app preference goes; any `Force` override stays, because it matches on file name and a
+second install of the same game may still be relying on it.
+
+## Finding the games
+
+Enumerating a Steam or Epic library is the obvious approach and it quietly gets the wrong answer.
+Launcher-fronted games render from a different executable than the one the store starts, and Auto
+HDR is keyed to the process that owns the swapchain — so the toggle gets written, and nothing
+happens. This repo's own registry had `Launcher.exe` configured for Riftbreaker, doing nothing.
+
+Games are discovered from three places instead, merged by path:
+
+| Source | What it is |
+|---|---|
+| `GameConfigStore` | Game Bar's record of what Windows *observed* rendering, so it names the real executable — `Client-Win64-Shipping.exe` for Wuthering Waves, both `Control_DX11.exe` and `Control_DX12.exe` for Control |
+| `UserGpuPreferences` | what is already configured, which also surfaces entries left behind by uninstalled games |
+| GPU engine counters | what is rendering this second, for anything Game Bar missed |
+
+Detection is by rendering, not by any manifest, so it is permissive on purpose: the occasional
+Electron app turns up in the list. That is a checkbox to leave unticked, not something the library
+should silently filter — and store metadata, when it lands, will sit on top of a discovered path
+rather than replace it. The traps are in
+[notes/gameconfigstore-is-the-real-game-list.md](notes/gameconfigstore-is-the-real-game-list.md).
 
 ## Using the library
 

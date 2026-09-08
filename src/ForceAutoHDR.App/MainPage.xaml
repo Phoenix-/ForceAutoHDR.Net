@@ -60,11 +60,27 @@
             </StackPanel>
         </Grid>
 
-        <InfoBar
-            x:Name="ErrorBar"
-            Grid.Row="1"
-            IsOpen="False"
-            Severity="Error" />
+        <StackPanel Grid.Row="1" Spacing="8">
+            <InfoBar
+                x:Name="ErrorBar"
+                IsOpen="False"
+                Severity="Error" />
+
+            <!--  Windows never prunes these itself, so nothing else will ever offer to.  -->
+            <InfoBar
+                IsClosable="False"
+                IsOpen="True"
+                Message="{x:Bind ViewModel.StaleMessage, Mode=OneWay}"
+                Severity="Informational"
+                Visibility="{x:Bind ViewModel.StaleBarVisibility, Mode=OneWay}">
+                <InfoBar.ActionButton>
+                    <Button
+                        Click="OnCleanUpStaleClick"
+                        Content="Remove them"
+                        ToolTipService.ToolTip="Deletes their per-app Auto HDR entries. Any Force override is kept, since it matches on file name and another install may still need it." />
+                </InfoBar.ActionButton>
+            </InfoBar>
+        </StackPanel>
 
         <!--  Column headers. Widths are mirrored by the item template below.  -->
         <Grid
@@ -177,7 +193,7 @@
                 HorizontalAlignment="Center"
                 Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                 Style="{StaticResource CaptionTextBlockStyle}"
-                Text="Add one to write its Auto HDR setting." />
+                Text="Add game lists what Windows has already seen you play." />
         </StackPanel>
     </Grid>
 </Page>
