@@ -156,7 +156,8 @@
                             <TextBlock
                                 Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                                 Style="{StaticResource CaptionTextBlockStyle}"
-                                Text="{x:Bind LastPlayedText, Mode=OneWay}" />
+                                Text="{x:Bind LastPlayedText, Mode=OneWay}"
+                                Visibility="{x:Bind LastPlayedVisibility, Mode=OneWay}" />
                         </StackPanel>
                     </Grid>
                 </DataTemplate>

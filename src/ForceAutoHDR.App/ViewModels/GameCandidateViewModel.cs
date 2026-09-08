@@ -72,6 +72,7 @@ public sealed partial class GameCandidateViewModel(GameCandidate candidate) : IN
         OnPropertyChanged(nameof(IsRunning));
         OnPropertyChanged(nameof(RunningBadgeVisibility));
         OnPropertyChanged(nameof(LastPlayedText));
+        OnPropertyChanged(nameof(LastPlayedVisibility));
     }
 
     public Visibility RunningBadgeVisibility => IsRunning ? Visibility.Visible : Visibility.Collapsed;
@@ -80,11 +81,21 @@ public sealed partial class GameCandidateViewModel(GameCandidate candidate) : IN
     /// When Game Bar last saw it, in the user's own date format. Undated entries say so rather
     /// than showing an epoch.
     /// </summary>
+    /// <remarks>
+    /// Still says "Running now" for a running game even though the column is hidden then: this is
+    /// what <see cref="ToString"/> reads out, and a row announced as just its name would lose the
+    /// one fact the badge conveys to everyone else.
+    /// </remarks>
     public string LastPlayedText => IsRunning
         ? "Running now"
         : Candidate.LastPlayedUtc is { } utc
             ? utc.ToLocalTime().ToString("d")
             : "Never seen running";
+
+    /// <summary>
+    /// Hides the date beside the Running badge, which otherwise says the same thing twice.
+    /// </summary>
+    public Visibility LastPlayedVisibility => IsRunning ? Visibility.Collapsed : Visibility.Visible;
 
     /// <summary>
     /// The automation name for the whole row; without it a screen reader reads the type name.
