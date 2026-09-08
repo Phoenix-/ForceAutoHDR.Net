@@ -5,10 +5,13 @@
 Windows Auto HDR, per game, without the Settings app — a C# rewrite of
 [7gxycn08/ForceAutoHDR](https://github.com/7gxycn08/ForceAutoHDR) on .NET 10 and Native AOT.
 
-> **Status: early but real.** The core library is done and covered by tests, and the WinUI 3 app
-> on top of it runs as a published Native AOT build: it lists every configured game, toggles both
-> mechanisms, and finds the games you actually play instead of asking you where they live.
-> Nothing is released yet — there is no download, and no installer.
+> **Status: 0.1.0, and there is something to download.** The core library is done and covered by
+> tests, and the WinUI 3 app on top of it lists every configured game, toggles both mechanisms, and
+> finds the games you actually play instead of asking you where they live. The
+> [latest release](https://github.com/Phoenix-/ForceAutoHDR.Net/releases/latest) is a zip: unpack
+> it anywhere and run `ForceAutoHDR.exe`. Native AOT and self-contained, so there is no installer
+> and nothing to install alongside it, and no elevation prompt either — everything it touches lives
+> under `HKCU`. Windows 11 22H2 or newer, x64.
 
 ## Why
 
