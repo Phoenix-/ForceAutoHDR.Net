@@ -1,0 +1,13 @@
+version: 2
+updates:
+  # The action majors move faster than a pet project gets touched: checkout, setup-dotnet and
+  # upload-artifact were all a major or two behind within months of the pipeline being written.
+  # Monthly, because these updates are read and merged by hand.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+
+  # NuGet is deliberately absent. A Windows App SDK bump changes what lands in the publish
+  # folder, and TrimWindowsAppSdkPayload is a deny-list that goes stale silently when files are
+  # renamed -- see notes/winui3-aot-payload-trim.md. Those upgrades want a person, not a bot.
