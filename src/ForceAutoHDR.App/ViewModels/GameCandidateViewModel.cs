@@ -20,7 +20,7 @@ public sealed partial class GameCandidateViewModel(GameCandidate candidate) : IN
     public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>The candidate as discovery reported it.</summary>
-    public GameCandidate Candidate { get; } = candidate;
+    public GameCandidate Candidate { get; private set; } = candidate;
 
     public string DisplayName => Candidate.DisplayName;
 
@@ -44,6 +44,35 @@ public sealed partial class GameCandidateViewModel(GameCandidate candidate) : IN
 
     /// <summary>Rendering right now, which is the strongest evidence this is a game at all.</summary>
     public bool IsRunning => Candidate.Origins.HasFlag(GameCandidateOrigins.Running);
+
+    /// <summary>
+    /// Records that the probe caught this executable rendering, on a row that already existed.
+    /// </summary>
+    /// <remarks>
+    /// The common case, not an edge one: the running game is usually one Game Bar already knows,
+    /// so the probe's answer arrives as a second sighting of a row that is on screen. The row is
+    /// updated rather than replaced because replacing it would throw away the user's tick -- which
+    /// means every value derived from the candidate has to be re-raised by hand, and the bindings
+    /// for them have to be <c>OneWay</c>.
+    /// </remarks>
+    public void MarkRunning()
+    {
+        if (IsRunning)
+        {
+            return;
+        }
+
+        Candidate = Candidate with
+        {
+            Origins = Candidate.Origins | GameCandidateOrigins.Running,
+            // It is rendering as we speak, whatever Game Bar last wrote down.
+            LastPlayedUtc = DateTime.UtcNow,
+        };
+
+        OnPropertyChanged(nameof(IsRunning));
+        OnPropertyChanged(nameof(RunningBadgeVisibility));
+        OnPropertyChanged(nameof(LastPlayedText));
+    }
 
     public Visibility RunningBadgeVisibility => IsRunning ? Visibility.Visible : Visibility.Collapsed;
 

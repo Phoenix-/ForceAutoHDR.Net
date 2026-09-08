@@ -28,6 +28,16 @@ public sealed partial class AddGamesDialog : ContentDialog
     /// <summary>The executables the user ticked. Empty unless the dialog was confirmed.</summary>
     public IReadOnlyList<string> SelectedPaths { get; private set; } = [];
 
+    /// <summary>
+    /// Looks for a running game the moment the dialog is up, without being asked.
+    /// </summary>
+    /// <remarks>
+    /// On <c>Opened</c> rather than in the constructor so the dialog is already on screen: the
+    /// probe blocks for a second, and the progress ring has to be visible while it does.
+    /// </remarks>
+    private async void OnOpened(ContentDialog sender, ContentDialogOpenedEventArgs args) =>
+        await ViewModel.AutoDetectRunningAsync();
+
     private async void OnDetectRunningClick(object sender, RoutedEventArgs e)
     {
         MessageBar.IsOpen = false;

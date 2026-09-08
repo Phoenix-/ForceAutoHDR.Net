@@ -105,7 +105,29 @@ public sealed partial class AddGamesViewModel : INotifyPropertyChanged
     /// selecting automatically: the user pressed the button while their game was running, and the
     /// answer is what they came for.
     /// </remarks>
-    public async Task DetectRunningAsync()
+    public Task DetectRunningAsync() => ProbeRunningAsync(announce: true, select: true);
+
+    /// <summary>
+    /// The same probe, run unprompted while the dialog opens.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Discovery misses whole categories of game on its own. Game Bar records a game only when it
+    /// matches a list Microsoft ships, so one installed outside the layout that list expects is
+    /// never recorded at all, and one that moves keeps its old, dead path -- see
+    /// <c>notes/gamebar-matches-games-against-a-microsoft-list.md</c>. Such a game is invisible
+    /// here until something looks at what is actually rendering, and expecting the user to know
+    /// that is how this got reported as "my game is missing" in the first place.
+    /// </para>
+    /// <para>
+    /// Unlike the button, this ticks nothing and says nothing when it finds nothing: the user did
+    /// not ask for it, so it may offer a row, but it must never pre-select one -- Enter confirms
+    /// this dialog -- nor scold about an empty result.
+    /// </para>
+    /// </remarks>
+    public Task AutoDetectRunningAsync() => ProbeRunningAsync(announce: false, select: false);
+
+    private async Task ProbeRunningAsync(bool announce, bool select)
     {
         IsProbing = true;
         try
@@ -121,10 +143,10 @@ public sealed partial class AddGamesViewModel : INotifyPropertyChanged
                 }
 
                 found++;
-                Promote(candidate);
+                Promote(candidate, select);
             }
 
-            if (found == 0)
+            if (found == 0 && announce)
             {
                 Failed?.Invoke(running.Count == 0
                     ? "Nothing is rendering right now. Start the game, let it reach a menu, then try again."
@@ -133,6 +155,8 @@ public sealed partial class AddGamesViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
+            // Reported even when unprompted: a counter query that throws is a real fault, and the
+            // silent version of it is a dialog that looks like it simply forgot the running game.
             Failed?.Invoke($"Could not read the GPU counters: {ex.Message}");
         }
         finally
@@ -153,12 +177,14 @@ public sealed partial class AddGamesViewModel : INotifyPropertyChanged
             return;
         }
 
-        Promote(new GameCandidate
-        {
-            ExecutablePath = executablePath,
-            Origins = GameCandidateOrigins.None,
-            ExecutableExists = true,
-        });
+        Promote(
+            new GameCandidate
+            {
+                ExecutablePath = executablePath,
+                Origins = GameCandidateOrigins.None,
+                ExecutableExists = true,
+            },
+            select: true);
     }
 
     private void Reload()
@@ -183,10 +209,15 @@ public sealed partial class AddGamesViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Moves a candidate to the top, ticked. An executable already listed is reused rather than
+    /// Moves a candidate to the top. An executable already listed is reused rather than
     /// duplicated -- the running game is usually one Game Bar knows about too.
     /// </summary>
-    private void Promote(GameCandidate candidate)
+    /// <param name="select">
+    /// Whether to tick it as well. True when the user asked for this row (the button, the file
+    /// picker); false when it arrived unprompted, so that confirming the dialog never adds
+    /// something nobody chose. An already-ticked row is never unticked by a later sighting.
+    /// </param>
+    private void Promote(GameCandidate candidate, bool select)
     {
         for (var i = 0; i < Candidates.Count; i++)
         {
@@ -196,7 +227,15 @@ public sealed partial class AddGamesViewModel : INotifyPropertyChanged
             }
 
             var existing = Candidates[i];
-            existing.IsSelected = true;
+            if (candidate.Origins.HasFlag(GameCandidateOrigins.Running))
+            {
+                // Without this the badge never appears for a game Game Bar already knew about,
+                // which is most of them -- and with the probe now running unprompted, the badge is
+                // the only sign it found anything.
+                existing.MarkRunning();
+            }
+
+            existing.IsSelected = existing.IsSelected || select;
             if (i > 0)
             {
                 Candidates.Move(i, 0);
@@ -205,7 +244,7 @@ public sealed partial class AddGamesViewModel : INotifyPropertyChanged
             return;
         }
 
-        Candidates.Insert(0, Track(new GameCandidateViewModel(candidate) { IsSelected = true }));
+        Candidates.Insert(0, Track(new GameCandidateViewModel(candidate) { IsSelected = select }));
         OnPropertyChanged(nameof(EmptyStateVisibility));
         OnPropertyChanged(nameof(HasSelection));
     }
