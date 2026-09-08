@@ -131,6 +131,14 @@ is the first thing to try if a published build misbehaves. What that target may 
 is written up in [notes/winui3-aot-payload-trim.md](notes/winui3-aot-payload-trim.md), together
 with the rest of what this stack cost to learn.
 
+The app icon is not built either. [art/AppIcon.png](art/AppIcon.png) is the artwork and
+[art/make-appicon.py](art/make-appicon.py) turns it into the ten-size
+`src/ForceAutoHDR.App/Assets/AppIcon.ico` that `<ApplicationIcon>` embeds in the exe -- which is
+also the only place the app has to read its own window icon back from, since publish does not copy
+loose assets. Run the script by hand when the art changes (it wants Pillow and numpy, neither of
+them part of the build); `--check` answers whether the committed `.ico` is still what the artwork
+produces.
+
 ## Versions and releases
 
 The git tag is the version of record, and pushing one is the entire release procedure. `v1.2.3`
