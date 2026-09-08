@@ -13,6 +13,8 @@ Windows Auto HDR, per game, without the Settings app — a C# rewrite of
 > and nothing to install alongside it, and no elevation prompt either — everything it touches lives
 > under `HKCU`. Windows 11 22H2 or newer, x64.
 
+![The ForceAutoHDR window: one row per configured game, with an Auto HDR and a Force switch on each](art/screenshot.png)
+
 ## Why
 
 Windows decides on its own which games get Auto HDR, and the per-game switch is buried three
