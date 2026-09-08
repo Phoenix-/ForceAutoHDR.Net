@@ -143,7 +143,7 @@ prerelease suffix — `v1.3.0-rc.1` — is marked as a prerelease; anything that
 Nothing in the tree gets bumped for a release. `VersionPrefix` in
 [Directory.Build.props](Directory.Build.props) says which line is being worked on, and every build
 that is not a release carries it with a `-dev` suffix plus the commit, so an exe you were handed
-reports `0.1.0-dev+9b1c3f2` in its file properties and cannot pass for a release. Move
+says `0.1.0-dev+9b1c3f2` in its own title bar and cannot pass for a release. Move
 `VersionPrefix` on once a line has shipped.
 
 [CI](.github/workflows/ci.yml) runs on every push and pull request: build, tests, and a full Native

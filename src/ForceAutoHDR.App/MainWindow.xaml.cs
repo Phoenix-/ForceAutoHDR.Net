@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
@@ -16,6 +17,7 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
         SetIconFromExecutable();
+        ShowBuildVersion();
 
         ResizeAndCenter(logicalWidth: 1020, logicalHeight: 700);
 
@@ -68,6 +70,27 @@ public sealed partial class MainWindow : Window
         {
             AppWindow.SetIcon(Win32Interop.GetIconIdFromIcon(icon));
         }
+    }
+
+    /// <summary>
+    /// Puts the running build's version next to the name in the title bar.
+    /// </summary>
+    /// <remarks>
+    /// Read out of the executable's own version resource rather than off
+    /// <see cref="System.Reflection.AssemblyInformationalVersionAttribute"/>: assembly metadata is
+    /// something the AOT compiler is free to drop, while the version resource is stamped into the
+    /// exe by the SDK and is what File Explorer shows too. Anything that is not a release reads
+    /// "0.1.0-dev+9b1c3f2", which is the point -- the one question about an exe someone was handed
+    /// is which build it is, and it should not take a properties dialog to answer.
+    /// </remarks>
+    private void ShowBuildVersion()
+    {
+        if (Environment.ProcessPath is not { } executablePath)
+        {
+            return;
+        }
+
+        AppTitleBar.Subtitle = FileVersionInfo.GetVersionInfo(executablePath).ProductVersion ?? string.Empty;
     }
 
     [LibraryImport("user32.dll")]
