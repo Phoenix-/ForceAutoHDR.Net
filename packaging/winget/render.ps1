@@ -8,7 +8,7 @@
     __PRODUCT_CODE__ and __UPGRADE_CODE__ placeholders. This fills them in and writes the three
     manifests to -OutputDirectory, named and laid out the way microsoft/winget-pkgs wants them:
 
-        manifests/p/Phoenix/ForceAutoHDRNet/<version>/
+        manifests/m/MikhailKazakov/ForceAutoHDRNet/<version>/
 
     Submitting is then a copy of that folder into a fork of winget-pkgs. See README.md.
 
@@ -50,7 +50,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$identifier = 'Phoenix.ForceAutoHDRNet'
+$identifier = 'MikhailKazakov.ForceAutoHDRNet'
 
 # The partition folder is the first letter of the identifier, lowercased, then the identifier with
 # its dots turned into separators. Keeping a single dot in the identifier is why this is one

@@ -6,8 +6,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <NeutralLanguage>en-US</NeutralLanguage>
     <Product>ForceAutoHDR.Net</Product>
-    <Authors>Phoenix-</Authors>
-    <Copyright>Copyright (c) 2026 Phoenix-</Copyright>
+    <Authors>Mikhail Kazakov</Authors>
+    <Copyright>Copyright (c) 2026 Mikhail Kazakov</Copyright>
     <RepositoryUrl>https://github.com/Phoenix-/ForceAutoHDR.Net</RepositoryUrl>
   </PropertyGroup>
 

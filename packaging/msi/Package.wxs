@@ -23,9 +23,9 @@
     Package/@Id is the WiX v6+ replacement for a hand-managed UpgradeCode GUID: the upgrade code
     is derived from this string, so it stays stable as long as the string does. Do not change it.
   -->
-  <Package Id="Phoenix.ForceAutoHDRNet"
+  <Package Id="MikhailKazakov.ForceAutoHDRNet"
            Name="ForceAutoHDR.Net"
-           Manufacturer="Phoenix-"
+           Manufacturer="Mikhail Kazakov"
            Version="$(var.ProductVersion)"
            Scope="perUser"
            Compressed="yes">
@@ -65,7 +65,7 @@
       <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
       <RemoveFolder Id="RemoveProgramsFolder" Directory="ProgramsFolder" On="uninstall" />
       <RegistryValue Root="HKCU"
-                     Key="Software\Phoenix-\ForceAutoHDR.Net"
+                     Key="Software\Mikhail Kazakov\ForceAutoHDR.Net"
                      Name="InstallFolder"
                      Type="string"
                      Value="[INSTALLFOLDER]"
@@ -82,7 +82,7 @@
         <RemoveFolder Id="RemoveProgramMenuFolder" On="uninstall" />
         <!-- A per-user component needs an HKCU keypath; the shortcut cannot be one. -->
         <RegistryValue Root="HKCU"
-                       Key="Software\Phoenix-\ForceAutoHDR.Net"
+                       Key="Software\Mikhail Kazakov\ForceAutoHDR.Net"
                        Name="StartMenuShortcut"
                        Type="integer"
                        Value="1"

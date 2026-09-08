@@ -48,21 +48,34 @@ $codes = ..\msi\Get-MsiProperty.ps1 -Path $msi
 Both codes go into the rendered YAML quoted. A bare `{GUID}` is a YAML flow mapping rather than a
 string, and `winget validate` rejects it with "Value type not permitted by 'type' constraint".
 
-Output lands in `out/manifests/p/Phoenix/ForceAutoHDRNet/<version>/`. `out/` is gitignored.
+Output lands in `out/manifests/m/MikhailKazakov/ForceAutoHDRNet/<version>/`. `out/` is gitignored.
 
-The identifier is `Phoenix.ForceAutoHDRNet`, not `Phoenix.ForceAutoHDR.Net`, because dots in a
-`PackageIdentifier` become folder separators in winget-pkgs: the latter would submit as
-`manifests/p/Phoenix/ForceAutoHDR/Net/`, with `Net` as a stray leaf directory. The display name
-stays `ForceAutoHDR.Net` in the locale manifest, and `Moniker: forceautohdr` is the short name
-users type. **Changing this after the first submission means a package rename in winget-pkgs, so
-settle it before the first pull request.**
+The identifier is `MikhailKazakov.ForceAutoHDRNet`. Two decisions are baked into that.
+
+**No dots inside the package name.** Dots in a `PackageIdentifier` become folder separators in
+winget-pkgs, so `MikhailKazakov.ForceAutoHDR.Net` would submit as
+`manifests/m/MikhailKazakov/ForceAutoHDR/Net/`, with `Net` as a stray leaf directory. The display
+name stays `ForceAutoHDR.Net` in the locale manifest, and `Moniker: forceautohdr` is the short
+name users type.
+
+**A real name rather than the GitHub handle.** Package identifiers are a single global namespace,
+and "Phoenix" is a common word and an established software vendor besides. A real name is the
+better identifier, and it keeps every package from this author under one
+`manifests/m/MikhailKazakov/` folder as more of them appear.
+
+This string is also `Package/@Id` in [Package.wxs](../msi/Package.wxs), from which WiX derives the
+MSI's UpgradeCode. The two are deliberately the same, and they must stay in step: renaming one
+without the other gives you an MSI that installs *beside* the previous version instead of
+upgrading it. **Both are effectively frozen once the package is accepted into winget-pkgs** —
+after that, changing them means removing one package and submitting another, with no migration
+path for anyone already on the old identifier.
 
 ## Testing a rendered manifest
 
 `winget validate` needs nothing special:
 
 ```powershell
-winget validate --manifest out\manifests\p\Phoenix\ForceAutoHDRNet\0.2.0
+winget validate --manifest out\manifests\m\MikhailKazakov\ForceAutoHDRNet\0.2.0
 ```
 
 `winget install --manifest` does. It is gated behind a setting that has to be turned on once, from
@@ -75,7 +88,7 @@ winget settings --enable LocalManifestFiles
 Then, from an ordinary prompt:
 
 ```powershell
-winget install --manifest out\manifests\p\Phoenix\ForceAutoHDRNet\0.2.0
+winget install --manifest out\manifests\m\MikhailKazakov\ForceAutoHDRNet\0.2.0
 ```
 
 **A security-check failure here does not mean the package is broken.** Our installers are
@@ -91,7 +104,7 @@ exactly this, but only for archive-type packages, so it does not apply to the MS
 Undo a test install with:
 
 ```powershell
-winget uninstall Phoenix.ForceAutoHDRNet
+winget uninstall MikhailKazakov.ForceAutoHDRNet
 ```
 
 ## Submitting

@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
 
-PackageIdentifier: Phoenix.ForceAutoHDRNet
+PackageIdentifier: MikhailKazakov.ForceAutoHDRNet
 PackageVersion: __VERSION__
 Platform:
   - Windows.Desktop
@@ -37,7 +37,7 @@ ProductCode: '__PRODUCT_CODE__'
 AppsAndFeaturesEntries:
   - DisplayName: ForceAutoHDR.Net
     DisplayVersion: __VERSION__
-    Publisher: Phoenix-
+    Publisher: Mikhail Kazakov
     ProductCode: '__PRODUCT_CODE__'
     UpgradeCode: '__UPGRADE_CODE__'
     InstallerType: msi

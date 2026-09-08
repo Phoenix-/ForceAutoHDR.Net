@@ -37,5 +37,5 @@ Correlation then happens through `ProductCode` and `AppsAndFeaturesEntries`, whi
 winget asserts nothing about elevation.
 
 **Where the guard lives:** the comment next to the absent `Scope` in
-[packaging/winget/Phoenix.ForceAutoHDRNet.installer.yaml](../packaging/winget/Phoenix.ForceAutoHDRNet.installer.yaml),
+[packaging/winget/MikhailKazakov.ForceAutoHDRNet.installer.yaml](../packaging/winget/MikhailKazakov.ForceAutoHDRNet.installer.yaml),
 and the Scope comment in [packaging/msi/Package.wxs](../packaging/msi/Package.wxs).
