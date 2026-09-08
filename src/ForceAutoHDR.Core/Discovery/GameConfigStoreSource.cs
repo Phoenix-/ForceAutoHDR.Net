@@ -8,10 +8,16 @@ namespace ForceAutoHDR.Core.Discovery;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This is the source that gets Auto HDR pointed at the right executable. Detection happens by
-/// observation, not from any manifest, so the path here is the process that owns the swapchain --
-/// which is routinely not the executable a store library names. See
-/// <c>notes/gameconfigstore-is-the-real-game-list.md</c>.
+/// This is the source that gets Auto HDR pointed at the right executable: the path here is the
+/// process that owns the swapchain, which is routinely not the executable a store library names.
+/// See <c>notes/gameconfigstore-is-the-real-game-list.md</c>.
+/// </para>
+/// <para>
+/// It is not a live index, though. Game Bar fills it by matching processes against a list
+/// Microsoft ships, so a game installed outside the layout that list expects never appears here at
+/// all, and one that moves keeps its old, dead path forever. Neither case is recoverable from this
+/// key -- that is what <see cref="RunningGameProbe"/> is for. See
+/// <c>notes/gamebar-matches-games-against-a-microsoft-list.md</c>.
 /// </para>
 /// <para>
 /// Read-only, and it will stay that way: the key belongs to Game Bar, and nothing good comes of a

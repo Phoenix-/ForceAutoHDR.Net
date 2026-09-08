@@ -6,9 +6,12 @@ namespace ForceAutoHDR.Core.Discovery;
 /// <remarks>
 /// <para>
 /// Game Bar stores <c>ExeParentDirectory</c> and <c>WorkingDirectory</c> next to the path and they
-/// look like exactly this, but they are populated inconsistently -- Wuthering Waves gets
-/// "Wuthering Waves", VOIN gets "Win64", Subnautica gets nothing -- so they are not used. Deriving
-/// the name from the path instead is not always prettier, but it fails the same way every time.
+/// look like exactly this -- Wuthering Waves gets "Wuthering Waves" -- but VOIN gets "Win64" and
+/// Subnautica gets nothing. They are not path fragments at all: on a list-matched entry they are
+/// the criteria Game Bar matched the title by, authored per title by Microsoft, so a good-looking
+/// one is a coincidence. See <c>notes/gamebar-matches-games-against-a-microsoft-list.md</c>.
+/// Deriving the name from the path instead is not always prettier, but it fails the same way
+/// every time.
 /// </para>
 /// <para>
 /// This is a placeholder for real store metadata: once a Steam/Epic library is matched against the

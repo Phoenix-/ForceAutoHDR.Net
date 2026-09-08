@@ -20,8 +20,13 @@ The test machine had exactly that, `Launcher.exe` configured for Riftbreaker.
 
 ## What Windows already records
 
-Game Bar writes one subkey per detected game under `HKCU\System\GameConfigStore\Children\{guid}`.
-Detection is by observed rendering, not by any manifest, so it names the real executable.
+Game Bar writes one subkey per detected game under `HKCU\System\GameConfigStore\Children\{guid}`,
+naming the executable that actually renders rather than the one a store launches.
+
+Detection is *not* by observation, as this note originally assumed. Game Bar matches running
+processes against a list Microsoft ships, and a game whose install layout falls outside its entry
+in that list is never recorded at all. The mechanism and its failure mode are in
+[gamebar-matches-games-against-a-microsoft-list.md](gamebar-matches-games-against-a-microsoft-list.md).
 
 | Value | Type | Notes |
 | --- | --- | --- |
@@ -45,9 +50,11 @@ account. An entry without `MatchedExeFullPath` is not a game, it is noise.
 `MatchedExeFullPath`, and so do the pathless ones. Filtering on it would drop a real game.
 The only sound test is the presence of `MatchedExeFullPath`.
 
-**Entries are never pruned.** 20 of 44 paths pointed at uninstalled games. `File.Exists` is
-mandatory, which is why `GameConfigStoreSource` takes an injectable existence predicate rather
-than calling `File.Exists` inline -- tests need to control it.
+**Entries are never pruned, and never corrected.** 20 of 44 paths pointed at uninstalled games.
+`File.Exists` is mandatory, which is why `GameConfigStoreSource` takes an injectable existence
+predicate rather than calling `File.Exists` inline -- tests need to control it. A game that *moves*
+is worse than one that is gone: the entry keeps the dead path forever, so the filter hides a game
+that is installed and playable.
 
 **Detection is not "uses D3D", so non-games get in.** VS Code (Electron) sits in the list. Only
 one false positive out of 44, but there is no field that separates it: no flag, no type, nothing.
@@ -61,8 +68,11 @@ VOIN-Win64-Shipping.exe     ExeParentDirectory=Binaries   WorkingDirectory=Win64
 Subnautica.exe              (both empty)
 ```
 
-Populated inconsistently and sometimes with a path fragment. `GameCandidate.DisplayName` derives
-the name from the path instead (`GameNameFromPath`), which at least fails the same way every time.
+They are not path components at all. On a list-matched child they are the *match constraints*
+Microsoft authored for that title, which is why they look arbitrary -- see
+[gamebar-matches-games-against-a-microsoft-list.md](gamebar-matches-games-against-a-microsoft-list.md).
+`GameCandidate.DisplayName` derives the name from the path instead (`GameName.FromPath`), which at
+least fails the same way every time.
 
 **It depends on Game Bar.** `HKCU\System\GameConfigStore\GameDVR_Enabled` was `1` on the test
 machine. Whether the list stops growing when Game Bar is disabled was not verified -- treat an
