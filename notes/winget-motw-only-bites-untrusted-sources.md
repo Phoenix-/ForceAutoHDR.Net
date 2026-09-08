@@ -27,6 +27,12 @@ winget-pkgs takes the first branch: a plain zone write, no antivirus invocation,
 "Windows protected your PC" dialog that never gets dismissed in an unattended session
 (microsoft/winget-cli#4046). The log stops at `Started applying motw using IAttachmentExecute to...`.
 
+Measured on our own 1.0.0 MSI, `winget install --manifest` against the published release: the
+dialog appears, and clicking through it lets the install finish and report exit 0. So on an
+interactive desktop this is a prompt rather than a failure -- which is worth knowing, because a
+green exit code here does *not* mean the scan was skipped. Unattended is where it turns into the
+hang.
+
 **Why this matters here:** our installers are unsigned, and unsigned + no SmartScreen reputation
 is exactly what trips that branch. The branch is reached by `winget install --manifest` and by
 custom or private sources — which is to say, by *our own local testing of the manifest*, and not
