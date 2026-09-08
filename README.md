@@ -85,11 +85,14 @@ dotnet test
 dotnet publish src/ForceAutoHDR.App -c Release
 ```
 
-.NET 10 SDK on Windows, plus the MSVC toolchain for the Native AOT link step. The core library
+.NET 10 SDK on Windows, plus the MSVC toolchain for the Native AOT link step. The link step also
+needs `vswhere.exe` on PATH -- publish from a Developer PowerShell, or see
+[notes/aot-link-step-needs-vswhere-on-path.md](notes/aot-link-step-needs-vswhere-on-path.md), which
+also explains why the error blames the linker instead. The core library
 targets `net10.0-windows`, is AOT-compatible, and pulls no packages at all; the app is unpackaged,
 self-contained WinUI 3 on Windows App SDK 2.4.
 
-The published payload is 30 files / 49.7 MB, trimmed from the stock 289 files / 131 MB by the
+The published payload is 30 files / 51 MB, trimmed from the stock 289 files / 131 MB by the
 `TrimWindowsAppSdkPayload` target — pass `-p:SkipPayloadTrim=true` to publish it untouched, which
 is the first thing to try if a published build misbehaves. What that target may and may not delete
 is written up in [notes/winui3-aot-payload-trim.md](notes/winui3-aot-payload-trim.md), together
