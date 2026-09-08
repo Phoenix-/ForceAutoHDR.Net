@@ -5,13 +5,17 @@
 Windows Auto HDR, per game, without the Settings app — a C# rewrite of
 [7gxycn08/ForceAutoHDR](https://github.com/7gxycn08/ForceAutoHDR) on .NET 10 and Native AOT.
 
-> **Status: 0.1.0, and there is something to download.** The core library is done and covered by
-> tests, and the WinUI 3 app on top of it lists every configured game, toggles both mechanisms, and
-> finds the games you actually play instead of asking you where they live. The
-> [latest release](https://github.com/Phoenix-/ForceAutoHDR.Net/releases/latest) is a zip: unpack
-> it anywhere and run `ForceAutoHDR.exe`. Native AOT and self-contained, so there is no installer
-> and nothing to install alongside it, and no elevation prompt either — everything it touches lives
-> under `HKCU`. Windows 11 22H2 or newer, x64.
+> **Status: 1.0.0, and feature complete.** The core library is done and covered by tests, and the
+> WinUI 3 app on top of it lists every configured game, toggles both mechanisms, and finds the
+> games you actually play instead of asking you where they live. What comes after this is meant to
+> be cosmetic.
+>
+> The [latest release](https://github.com/Phoenix-/ForceAutoHDR.Net/releases/latest) offers two
+> ways in. The `.msi` installs for your user alone — a Start Menu entry, a row in Add/Remove
+> Programs to uninstall from, and no elevation prompt, because everything this app touches lives
+> under `HKCU`. The zip is the same build with nothing around it: unpack it anywhere and run
+> `ForceAutoHDR.exe`. Native AOT and self-contained either way, so there is nothing to install
+> alongside it. Windows 11 22H2 or newer, x64.
 
 ![The ForceAutoHDR window: one row per configured game, with an Auto HDR and a Force switch on each](art/screenshot.png)
 
@@ -144,6 +148,20 @@ loose assets. Run the script by hand when the art changes (it wants Pillow and n
 them part of the build); `--check` answers whether the committed `.ico` is still what the artwork
 produces.
 
+Neither is the installer. It takes the *published* payload rather than a project reference,
+because the file set only settles after the link step and the trim target have both run:
+
+```
+dotnet publish src/ForceAutoHDR.App -c Release -o publish
+dotnet build packaging/msi/ForceAutoHDR.wixproj -c Release -t:Rebuild -p:ProductVersion=1.0.0 -p:PayloadDir=$PWD\publish
+```
+
+`-t:Rebuild` is not decoration: MSBuild does not treat a changed `ProductVersion` as a reason to
+rebuild, so without it you get the previous MSI back and a success message.
+[packaging/msi/README.md](packaging/msi/README.md) has that trap and the rest of what a per-user
+MSI costs; [packaging/winget/README.md](packaging/winget/README.md) covers the winget package that
+sits on top of it.
+
 ## Versions and releases
 
 The git tag is the version of record, and pushing one is the entire release procedure. `v1.2.3`
@@ -152,6 +170,12 @@ the published payload as `ForceAutoHDR-1.2.3-win-x64.zip` with a SHA256 beside i
 **draft** GitHub release for the notes to be written by hand before anything goes out. A tag with a
 prerelease suffix — `v1.3.0-rc.1` — is marked as a prerelease; anything that is not
 `vMAJOR.MINOR.PATCH` fails the workflow rather than shipping under a name nobody can parse.
+
+A stable tag also builds `ForceAutoHDR-1.2.3-win-x64.msi` into the release, and renders the
+[winget manifests](packaging/winget) for it into a build artifact — the manifests are for whoever
+opens the winget-pkgs pull request, not for anyone downloading the app. Prereleases get the zip
+only: MSI `ProductVersion` is three numbers with no room for a `-rc.1`, so two prereleases of the
+same version would collide and neither would upgrade the other.
 
 Nothing in the tree gets bumped for a release. `VersionPrefix` in
 [Directory.Build.props](Directory.Build.props) says which line is being worked on, and every build
