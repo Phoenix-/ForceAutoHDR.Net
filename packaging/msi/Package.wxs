@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <!--
+    Per-user, and only per-user. Every key this app writes lives under HKCU, so an installer that
+    asked for admin would be the only part of the product that did. Scope="perUser" sets
+    InstallPrivileges to "limited": a double-click, and anything winget does, installs without an
+    elevation prompt into the user's own profile.
+
+    FireGiant recommends Scope="perUserOrMachine" when harvesting with <Files>, to get around ICE
+    validation. That was tried and produces exactly the same ICE38/ICE64/ICE91 failures, because
+    the install location still does not vary with ALLUSERS. It also leaves a per-machine mode
+    reachable by an elevated install, which would drop the payload in one administrator's profile.
+    Strict perUser forecloses that, and the three ICEs are suppressed in the wixproj instead, one
+    by one, with the reasoning written out there.
+
+    Verified: msiexec /qn from an unelevated shell installs without any prompt, and the log says
+    "Running product '{...}' with user privileges: It's not assigned." Windows Installer still
+    writes the Add/Remove Programs key to HKLM rather than HKCU, which is its own behaviour and
+    not something this authoring controls. See
+    notes/per-user-msi-still-registers-arp-under-hklm.md for what that costs the winget manifest.
+
+    Package/@Id is the WiX v6+ replacement for a hand-managed UpgradeCode GUID: the upgrade code
+    is derived from this string, so it stays stable as long as the string does. Do not change it.
+  -->
+  <Package Id="Phoenix.ForceAutoHDRNet"
+           Name="ForceAutoHDR.Net"
+           Manufacturer="Phoenix-"
+           Version="$(var.ProductVersion)"
+           Scope="perUser"
+           Compressed="yes">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+    <!-- One embedded cab. The payload is a self-contained Native AOT build, so it compresses
+         from roughly 49 MB down to the size of the release zip. -->
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- The icon is read out of the exe rather than shipped as a separate .ico, for the same
+         reason the app itself reads it from there: content assets do not survive publish.
+         See notes/winui3-publish-does-not-copy-content-assets.md. -->
+    <Icon Id="ForceAutoHDR.exe" SourceFile="!(bindpath.payload)\ForceAutoHDR.exe" />
+    <Property Id="ARPPRODUCTICON" Value="ForceAutoHDR.exe" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/Phoenix-/ForceAutoHDR.Net" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/Phoenix-/ForceAutoHDR.Net/issues" />
+    <!-- There is nothing to configure, so Add/Remove Programs should not offer to. -->
+    <Property Id="ARPNOMODIFY" Value="1" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="ForceAutoHDR.Net" />
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Harvested at build time rather than listed by hand: the file set is the trimmed Windows
+         App SDK payload, and it changes whenever TrimWindowsAppSdkPayload in
+         ForceAutoHDR.App.csproj changes or the SDK is bumped. A hand-maintained list would go
+         stale silently. -->
+    <Files Include="!(bindpath.payload)\**" Directory="INSTALLFOLDER" />
+
+    <!-- Uninstall leaves nothing behind. MSI removes the files it installed and usually the
+         directories with them, but ICE64 is right that a profile directory deserves to be
+         explicit rather than assumed. -->
+    <Component Id="InstallFolderCleanup" Directory="INSTALLFOLDER">
+      <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
+      <RemoveFolder Id="RemoveProgramsFolder" Directory="ProgramsFolder" On="uninstall" />
+      <RegistryValue Root="HKCU"
+                     Key="Software\Phoenix-\ForceAutoHDR.Net"
+                     Name="InstallFolder"
+                     Type="string"
+                     Value="[INSTALLFOLDER]"
+                     KeyPath="yes" />
+    </Component>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="StartMenuShortcut">
+        <Shortcut Id="ForceAutoHDRShortcut"
+                  Name="ForceAutoHDR.Net"
+                  Description="Windows Auto HDR, per game, without the Settings app"
+                  Target="[INSTALLFOLDER]ForceAutoHDR.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="RemoveProgramMenuFolder" On="uninstall" />
+        <!-- A per-user component needs an HKCU keypath; the shortcut cannot be one. -->
+        <RegistryValue Root="HKCU"
+                       Key="Software\Phoenix-\ForceAutoHDR.Net"
+                       Name="StartMenuShortcut"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+  </Package>
+</Wix>

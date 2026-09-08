@@ -1,0 +1,55 @@
+<Project Sdk="WixToolset.Sdk/7.0.0">
+
+  <PropertyGroup>
+    <!-- WiX v7 refuses to run any command until its Open Source Maintenance Fee EULA is accepted
+         (error WIX7015). The fee itself is only owed by organizations above a revenue threshold,
+         which this project is not; accepting the EULA is the whole obligation here. See
+         packaging/msi/README.md. -->
+    <AcceptEula>wix7</AcceptEula>
+
+    <OutputName>ForceAutoHDR</OutputName>
+    <OutputType>Package</OutputType>
+    <InstallerPlatform>x64</InstallerPlatform>
+
+    <!-- These three fire for every file harvested by <Files> into a per-user install location,
+         and all three are asking for something a strictly per-user package cannot and should not
+         provide. Checked one by one, not suppressed wholesale:
+
+           ICE38  wants an HKCU registry keypath on every component that lands in the user
+                  profile, so that a per-machine install can still track per-user state. This
+                  package is per-user only; the files themselves are the right keypath.
+           ICE64  wants profile directories listed in the RemoveFile table. That matters for
+                  directories the installer did not create. Ours are all MSI-created and MSI
+                  removes them; the StartMenuShortcut and InstallFolderCleanup components below
+                  carry explicit RemoveFolder entries anyway.
+           ICE91  warns that a per-user directory does not vary with ALLUSERS, i.e. that a
+                  per-machine install would put files in one user's profile. Correct, and the
+                  reason Scope is perUser: there is no per-machine mode to get wrong.
+
+         FireGiant's documented alternative, Scope="perUserOrMachine", was tried first and
+         produces the same three, because the install location still does not vary. -->
+    <SuppressIces>ICE38;ICE64;ICE91</SuppressIces>
+
+    <!-- Package.wxs reads the version through the preprocessor. There is deliberately no default:
+         a wrong ProductVersion produces an MSI that will not upgrade, and that is not a failure
+         worth discovering after a release. -->
+    <DefineConstants>ProductVersion=$(ProductVersion)</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The published, trimmed app. Passed in rather than referenced as a project, because the
+         payload only exists after `dotnet publish` has run the AOT link step and the
+         TrimWindowsAppSdkPayload target. -->
+    <BindPath Include="$(PayloadDir)" BindName="payload" />
+  </ItemGroup>
+
+  <Target Name="RequirePayload" BeforeTargets="Build">
+    <Error Condition="'$(ProductVersion)' == ''"
+           Text="ProductVersion is not set. Build with -p:ProductVersion=1.2.3 (three numeric parts; MSI has no notion of a prerelease suffix)." />
+    <Error Condition="'$(PayloadDir)' == ''"
+           Text="PayloadDir is not set. Build with -p:PayloadDir=&lt;path to the publish output&gt;." />
+    <Error Condition="'$(PayloadDir)' != '' And !Exists('$(PayloadDir)\ForceAutoHDR.exe')"
+           Text="PayloadDir '$(PayloadDir)' has no ForceAutoHDR.exe. Run dotnet publish src/ForceAutoHDR.App first." />
+  </Target>
+
+</Project>
