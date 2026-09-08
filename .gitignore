@@ -3,6 +3,7 @@ obj/
 .vs/
 *.user
 publish/
+dist/
 
 # Throwaway WinUI 3 + NativeAOT spike that answered the "is this stack shippable" question.
 # Its findings live in notes/; the code itself is not worth publishing.

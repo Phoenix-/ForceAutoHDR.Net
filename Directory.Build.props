@@ -6,6 +6,32 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <NeutralLanguage>en-US</NeutralLanguage>
     <Product>ForceAutoHDR.Net</Product>
-    <Version>0.1.0</Version>
+    <Authors>Phoenix-</Authors>
+    <Copyright>Copyright (c) 2026 Phoenix-</Copyright>
+    <RepositoryUrl>https://github.com/Phoenix-/ForceAutoHDR.Net</RepositoryUrl>
   </PropertyGroup>
+
+  <!-- Versioning: the git tag is the version of record. Pushing `v1.2.3` makes the release
+       workflow build with -p:Version=1.2.3, which overrides both properties below, so a release
+       costs one tag and no version-bump commit to forget or to get wrong.
+
+       What is left here is what a build that is not a release calls itself: the line being
+       worked on, suffixed -dev so an exe someone was handed can never pass for a release.
+       CI stamps the commit on top of it with -p:SourceRevisionId, giving 0.1.0-dev+sha. -->
+  <PropertyGroup>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionSuffix Condition="'$(VersionSuffix)' == ''">dev</VersionSuffix>
+  </PropertyGroup>
+
+  <!-- The SDK finds the commit itself (SourceLink ships in it now) and appends all 40 characters
+       of it to the informational version. Seven is what a person quotes and what fits a title
+       bar, so it is cut back down after source control has spoken and before the version is
+       assembled. PadRight keeps a shorter id from throwing instead of just being short. -->
+  <Target Name="ShortenSourceRevisionId"
+          AfterTargets="InitializeSourceControlInformation"
+          BeforeTargets="AddSourceRevisionToInformationalVersion">
+    <PropertyGroup>
+      <SourceRevisionId Condition="'$(SourceRevisionId)' != ''">$(SourceRevisionId.PadRight(7).Substring(0, 7).Trim())</SourceRevisionId>
+    </PropertyGroup>
+  </Target>
 </Project>

@@ -1,5 +1,7 @@
 # ForceAutoHDR.Net
 
+[![CI](https://github.com/Phoenix-/ForceAutoHDR.Net/actions/workflows/ci.yml/badge.svg)](https://github.com/Phoenix-/ForceAutoHDR.Net/actions/workflows/ci.yml)
+
 Windows Auto HDR, per game, without the Settings app — a C# rewrite of
 [7gxycn08/ForceAutoHDR](https://github.com/7gxycn08/ForceAutoHDR) on .NET 10 and Native AOT.
 
@@ -115,18 +117,40 @@ dotnet test
 dotnet publish src/ForceAutoHDR.App -c Release
 ```
 
-.NET 10 SDK on Windows, plus the MSVC toolchain for the Native AOT link step. The link step also
-needs `vswhere.exe` on PATH -- publish from a Developer PowerShell, or see
+.NET 10 SDK on Windows — the band is pinned in [global.json](global.json) — plus the MSVC toolchain
+for the Native AOT link step. The link step also needs `vswhere.exe` on PATH -- publish from a
+Developer PowerShell, or see
 [notes/aot-link-step-needs-vswhere-on-path.md](notes/aot-link-step-needs-vswhere-on-path.md), which
-also explains why the error blames the linker instead. The core library
-targets `net10.0-windows`, is AOT-compatible, and pulls no packages at all; the app is unpackaged,
-self-contained WinUI 3 on Windows App SDK 2.4.
+also explains why the error blames the linker instead. The core library targets `net10.0-windows`,
+is AOT-compatible, and pulls no packages at all; the app is unpackaged, self-contained WinUI 3 on
+Windows App SDK 2.4.
 
 The published payload is 30 files / 51 MB, trimmed from the stock 289 files / 131 MB by the
 `TrimWindowsAppSdkPayload` target — pass `-p:SkipPayloadTrim=true` to publish it untouched, which
 is the first thing to try if a published build misbehaves. What that target may and may not delete
 is written up in [notes/winui3-aot-payload-trim.md](notes/winui3-aot-payload-trim.md), together
 with the rest of what this stack cost to learn.
+
+## Versions and releases
+
+The git tag is the version of record, and pushing one is the entire release procedure. `v1.2.3`
+makes the [release workflow](.github/workflows/release.yml) build with `-p:Version=1.2.3`, package
+the published payload as `ForceAutoHDR-1.2.3-win-x64.zip` with a SHA256 beside it, and leave a
+**draft** GitHub release for the notes to be written by hand before anything goes out. A tag with a
+prerelease suffix — `v1.3.0-rc.1` — is marked as a prerelease; anything that is not
+`vMAJOR.MINOR.PATCH` fails the workflow rather than shipping under a name nobody can parse.
+
+Nothing in the tree gets bumped for a release. `VersionPrefix` in
+[Directory.Build.props](Directory.Build.props) says which line is being worked on, and every build
+that is not a release carries it with a `-dev` suffix plus the commit, so an exe you were handed
+reports `0.1.0-dev+9b1c3f2` in its file properties and cannot pass for a release. Move
+`VersionPrefix` on once a line has shipped.
+
+[CI](.github/workflows/ci.yml) runs on every push and pull request: build, tests, and a full Native
+AOT publish. The publish is there because the link step and the payload trim are the parts of this
+stack that break, and neither runs during a plain build — the job also fails if the payload creeps
+back toward the untrimmed 131 MB, which is what a Windows App SDK update renaming files out from
+under a deny-list would look like. The published build is kept as a run artifact for 14 days.
 
 ## Credits
 

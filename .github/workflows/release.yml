@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-2025
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # The tag is the version of record; nothing in the tree has to be bumped to release.
+      - name: Read the version out of the tag
+        id: version
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}' -replace '^v', ''
+          if ($version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$') {
+            throw "Tag '${{ github.ref_name }}' is not vMAJOR.MINOR.PATCH[-prerelease]"
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "prerelease=$(if ($version.Contains('-')) { 'true' } else { 'false' })" >> $env:GITHUB_OUTPUT
+          Write-Host "Building $version"
+
+      # See notes/aot-link-step-needs-vswhere-on-path.md.
+      - name: Put vswhere on PATH
+        shell: pwsh
+        run: Add-Content $env:GITHUB_PATH 'C:\Program Files (x86)\Microsoft Visual Studio\Installer'
+
+      - name: Build
+        run: dotnet build ForceAutoHDR.Net.slnx -c Release -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Test
+        run: dotnet test tests/ForceAutoHDR.Core.Tests -c Release --no-build
+
+      - name: Publish (Native AOT)
+        run: dotnet publish src/ForceAutoHDR.App -c Release -p:Version=${{ steps.version.outputs.version }} -o "${{ github.workspace }}\publish"
+
+      - name: Package
+        id: package
+        shell: pwsh
+        run: |
+          $name = "ForceAutoHDR-${{ steps.version.outputs.version }}-win-x64"
+          if (-not (Test-Path publish\ForceAutoHDR.exe)) { throw 'ForceAutoHDR.exe is missing' }
+          Copy-Item LICENSE publish\LICENSE.txt
+          Copy-Item README.md publish\README.md
+          New-Item -ItemType Directory dist | Out-Null
+          Compress-Archive -Path publish\* -DestinationPath "dist\$name.zip"
+          $hash = (Get-FileHash "dist\$name.zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash *$name.zip" | Set-Content "dist\$name.zip.sha256" -NoNewline
+          "name=$name" >> $env:GITHUB_OUTPUT
+          Write-Host "$name.zip -- $([math]::Round((Get-Item "dist\$name.zip").Length / 1MB, 1)) MB, sha256 $hash"
+
+      # Draft on purpose: the notes want a human pass, and an unpublished draft can still be
+      # deleted and rebuilt from a moved tag without anyone having downloaded it.
+      - name: Draft the GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ghArgs = @(
+            '${{ github.ref_name }}'
+            '--draft'
+            '--generate-notes'
+            '--title', 'ForceAutoHDR.Net ${{ steps.version.outputs.version }}'
+          )
+          if ('${{ steps.version.outputs.prerelease }}' -eq 'true') { $ghArgs += '--prerelease' }
+          $ghArgs += "dist\${{ steps.package.outputs.name }}.zip"
+          $ghArgs += "dist\${{ steps.package.outputs.name }}.zip.sha256"
+          gh release create @ghArgs

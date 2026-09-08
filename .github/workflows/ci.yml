@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same branch makes the running build irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # ILCompiler shells out to vswhere by bare name to find the MSVC toolchain, and blames
+      # link.exe when it is missing. See notes/aot-link-step-needs-vswhere-on-path.md.
+      - name: Put vswhere on PATH
+        shell: pwsh
+        run: Add-Content $env:GITHUB_PATH 'C:\Program Files (x86)\Microsoft Visual Studio\Installer'
+
+      - name: Build
+        run: dotnet build ForceAutoHDR.Net.slnx -c Release
+
+      - name: Test
+        run: dotnet test tests/ForceAutoHDR.Core.Tests -c Release --no-build
+
+      # The AOT link and the payload trim are the fragile part of this stack, and they only run
+      # on publish -- so publish on every push rather than finding out at tag time.
+      - name: Publish (Native AOT)
+        run: dotnet publish src/ForceAutoHDR.App -c Release -o "${{ github.workspace }}\publish"
+
+      - name: Check the published payload
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem "${{ github.workspace }}\publish" -Recurse -File
+          $size = [math]::Round(($files | Measure-Object Length -Sum).Sum / 1MB, 1)
+          Write-Host "$($files.Count) files, $size MB"
+          if (-not (Test-Path "${{ github.workspace }}\publish\ForceAutoHDR.exe")) { throw 'ForceAutoHDR.exe is missing' }
+          # The trim target is a deny-list: a Windows App SDK update that renames files would
+          # quietly stop trimming them, and a payload back near the stock 131 MB is the signal.
+          if ($size -gt 80) { throw "Payload is $size MB -- the trim target is no longer catching what it used to" }
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ForceAutoHDR-win-x64-${{ github.sha }}
+          path: publish/
+          retention-days: 14
