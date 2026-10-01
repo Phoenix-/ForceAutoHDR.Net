@@ -15,8 +15,8 @@
 .EXAMPLE
     $msi = '..\msi\bin\Release\ForceAutoHDR.msi'
     $codes = ..\msi\Get-MsiProperty.ps1 -Path $msi
-    ./render.ps1 -Version 0.2.0 `
-                 -InstallerUrl https://github.com/Phoenix-/ForceAutoHDR.Net/releases/download/v0.2.0/ForceAutoHDR-0.2.0-win-x64.msi `
+    ./render.ps1 -Version 1.0.0 `
+                 -InstallerUrl https://github.com/Phoenix-/ForceAutoHDR.Net/releases/download/v1.0.0/ForceAutoHDR-1.0.0-win-x64.msi `
                  -InstallerSha256 (Get-FileHash $msi -Algorithm SHA256).Hash `
                  -ProductCode $codes.ProductCode `
                  -UpgradeCode $codes.UpgradeCode

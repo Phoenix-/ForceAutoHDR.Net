@@ -38,8 +38,8 @@ it rather than written down anywhere:
 ```powershell
 $msi = '..\msi\bin\Release\ForceAutoHDR.msi'
 $codes = ..\msi\Get-MsiProperty.ps1 -Path $msi
-./render.ps1 -Version 0.2.0 `
-             -InstallerUrl https://github.com/Phoenix-/ForceAutoHDR.Net/releases/download/v0.2.0/ForceAutoHDR-0.2.0-win-x64.msi `
+./render.ps1 -Version 1.0.0 `
+             -InstallerUrl https://github.com/Phoenix-/ForceAutoHDR.Net/releases/download/v1.0.0/ForceAutoHDR-1.0.0-win-x64.msi `
              -InstallerSha256 (Get-FileHash $msi -Algorithm SHA256).Hash `
              -ProductCode $codes.ProductCode `
              -UpgradeCode $codes.UpgradeCode
@@ -47,6 +47,17 @@ $codes = ..\msi\Get-MsiProperty.ps1 -Path $msi
 
 Both codes go into the rendered YAML quoted. A bare `{GUID}` is a YAML flow mapping rather than a
 string, and `winget validate` rejects it with "Value type not permitted by 'type' constraint".
+
+**Pass `-ReleaseDate` when re-rendering a version that already shipped.** It defaults to today in
+UTC, which is right when the release workflow runs it on the day of the build and wrong every
+other time. Re-render 1.0.0 next year without it and the manifest will claim the package was
+released next year. There is no validation that catches this, because any date is a valid date —
+the only guard is remembering, which is why it is written here.
+
+The templates are commented; the rendered manifests are not. `render.ps1` strips comment lines on
+the way out, keeping only the `yaml-language-server` directive, which is conventional in
+winget-pkgs. Explanations of why a field is set, absent or quoted belong in the templates in this
+folder — a submission arguing its own case invites discussion rather than a merge.
 
 Output lands in `out/manifests/m/MikhailKazakov/ForceAutoHDRNet/<version>/`. `out/` is gitignored.
 
@@ -75,7 +86,7 @@ path for anyone already on the old identifier.
 `winget validate` needs nothing special:
 
 ```powershell
-winget validate --manifest out\manifests\m\MikhailKazakov\ForceAutoHDRNet\0.2.0
+winget validate --manifest out\manifests\m\MikhailKazakov\ForceAutoHDRNet\1.0.0
 ```
 
 `winget install --manifest` does. It is gated behind a setting that has to be turned on once, from
@@ -88,7 +99,7 @@ winget settings --enable LocalManifestFiles
 Then, from an ordinary prompt:
 
 ```powershell
-winget install --manifest out\manifests\m\MikhailKazakov\ForceAutoHDRNet\0.2.0
+winget install --manifest out\manifests\m\MikhailKazakov\ForceAutoHDRNet\1.0.0
 ```
 
 **A security-check failure here does not mean the package is broken.** Our installers are

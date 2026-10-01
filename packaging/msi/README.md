@@ -21,7 +21,10 @@ app gets a Start Menu shortcut and an Add/Remove Programs entry that a portable 
   single source of truth for what ships.
 - **Upgrades handled by Windows Installer.** `Package/@Id` is a stable string, WiX derives the
   UpgradeCode from it, and `<MajorUpgrade>` replaces the previous version. Verified: building
-  0.1.0 and 0.2.0 gives the same UpgradeCode and different ProductCodes.
+  two different versions off the same source gives the same UpgradeCode and different
+  ProductCodes, and the UpgradeCode comes out identical on a different machine, so upgrades will
+  line up. The flip side: renaming `Package/@Id` moves the UpgradeCode with it, and an installer
+  with a new UpgradeCode installs *beside* the old version rather than over it.
 
 ## Building
 
@@ -30,7 +33,7 @@ reference, because the file set only settles after the AOT link step and the tri
 
 ```powershell
 dotnet publish src/ForceAutoHDR.App -c Release -o publish
-dotnet build packaging/msi/ForceAutoHDR.wixproj -c Release -t:Rebuild -p:ProductVersion=0.2.0 -p:PayloadDir=$PWD\publish
+dotnet build packaging/msi/ForceAutoHDR.wixproj -c Release -t:Rebuild -p:ProductVersion=1.0.0 -p:PayloadDir=$PWD\publish
 ```
 
 `-t:Rebuild` is not optional. See
