@@ -83,6 +83,17 @@ foreach ($template in Get-ChildItem -Path $PSScriptRoot -Filter "$identifier*.ya
         throw "$($template.Name) still has an unfilled placeholder: $($Matches[0])"
     }
 
+    # The templates carry comments explaining why fields are set, absent or quoted the way they
+    # are. Those are for us. What goes to winget-pkgs should look like the two hundred thousand
+    # machine-generated manifests already there, so the prose is stripped on the way out -- a
+    # submission arguing its own case invites discussion instead of a merge. The
+    # yaml-language-server directive stays: that one is conventional in the repository.
+    $kept = $text -split "`r?`n" | Where-Object { $_ -notmatch '^\s*#' -or $_ -match 'yaml-language-server' }
+    # Collapse the blank runs the removed comments left behind, then normalise the ends: the
+    # split/join round-trip would otherwise leave the file ending in a blank line.
+    $text = ($kept -join "`n") -replace "`n{3,}", "`n`n"
+    $text = $text.Trim("`n") + "`n"
+
     # UTF-8 without BOM, LF. winget-pkgs validation accepts both line endings, but the repository
     # is LF and a CRLF file shows up as a whole-file diff.
     $text = $text -replace "`r`n", "`n"

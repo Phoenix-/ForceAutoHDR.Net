@@ -34,9 +34,11 @@ UpgradeBehavior: install
 # Quoted because a bare {GUID} is a YAML flow mapping, not a string, and winget validate
 # rejects it with "Value type not permitted by 'type' constraint".
 ProductCode: '__PRODUCT_CODE__'
+# DisplayVersion is deliberately absent. Authoring.md wants it only when PackageVersion and
+# the version the installer writes to ARP can disagree -- none of its four cases apply here,
+# and a redundant copy was flagged on the first submission (winget-pkgs#431440).
 AppsAndFeaturesEntries:
   - DisplayName: ForceAutoHDR.Net
-    DisplayVersion: __VERSION__
     Publisher: Mikhail Kazakov
     ProductCode: '__PRODUCT_CODE__'
     UpgradeCode: '__UPGRADE_CODE__'
